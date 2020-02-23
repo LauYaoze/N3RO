@@ -1,3 +1,58 @@
+
+/**
+ * 该兼容方法来自 @nobyda https://github.com/NobyDa/Script
+ */
+function init() {
+  const isRequest = typeof $request != 'undefined'
+  const isSurge = typeof $httpClient != 'undefined'
+  const isQuanX = typeof $task != 'undefined'
+  const notify = (title, subtitle, message) => {
+    if (isQuanX) $notify(title, subtitle, message)
+    if (isSurge) $notification.post(title, subtitle, message)
+  }
+  const write = (value, key) => {
+    if (isQuanX) return $prefs.setValueForKey(value, key)
+    if (isSurge) return $persistentStore.write(value, key)
+  }
+  const read = key => {
+    if (isQuanX) return $prefs.valueForKey(key)
+    if (isSurge) return $persistentStore.read(key)
+  }
+  const get = (options, callback) => {
+    if (isQuanX) {
+      if (typeof options == 'string') options = { url: options }
+      options['method'] = 'GET'
+      return $task.fetch(options).then(
+        response => {
+          response['status'] = response.statusCode
+          callback(null, response, response.body)
+        },
+        reason => callback(reason.error, null, null)
+      )
+    }
+    if (isSurge) return $httpClient.get(options, callback)
+  }
+  const post = (options, callback) => {
+    if (isQuanX) {
+      if (typeof options == 'string') options = { url: options }
+      options['method'] = 'POST'
+      $task.fetch(options).then(
+        response => {
+          response['status'] = response.statusCode
+          callback(null, response, response.body)
+        },
+        reason => callback(reason.error, null, null)
+      )
+    }
+    if (isSurge) $httpClient.post(options, callback)
+  }
+  const done = (value = {}) => {
+    if (isQuanX) isRequest ? $done(value) : ''
+    if (isSurge) isRequest ? $done(value) : $done()
+  }
+  return { isRequest, isQuanX, isSurge, notify, write, read, get, post, done }
+}
+
 const accounts = [
     ["N3RO", "https://n3ro.fun/auth/login", "386727754@qq.com", "always007"]
 ]
@@ -67,58 +122,4 @@ function dataResults(url, checkinMsg, title) {
             $notification.post(title + '获取流量信息失败', "", "");
         }
     });
-}
-
-/**
- * 该兼容方法来自 @nobyda https://github.com/NobyDa/Script
- */
-function init() {
-  const isRequest = typeof $request != 'undefined'
-  const isSurge = typeof $httpClient != 'undefined'
-  const isQuanX = typeof $task != 'undefined'
-  const notify = (title, subtitle, message) => {
-    if (isQuanX) $notify(title, subtitle, message)
-    if (isSurge) $notification.post(title, subtitle, message)
-  }
-  const write = (value, key) => {
-    if (isQuanX) return $prefs.setValueForKey(value, key)
-    if (isSurge) return $persistentStore.write(value, key)
-  }
-  const read = key => {
-    if (isQuanX) return $prefs.valueForKey(key)
-    if (isSurge) return $persistentStore.read(key)
-  }
-  const get = (options, callback) => {
-    if (isQuanX) {
-      if (typeof options == 'string') options = { url: options }
-      options['method'] = 'GET'
-      return $task.fetch(options).then(
-        response => {
-          response['status'] = response.statusCode
-          callback(null, response, response.body)
-        },
-        reason => callback(reason.error, null, null)
-      )
-    }
-    if (isSurge) return $httpClient.get(options, callback)
-  }
-  const post = (options, callback) => {
-    if (isQuanX) {
-      if (typeof options == 'string') options = { url: options }
-      options['method'] = 'POST'
-      $task.fetch(options).then(
-        response => {
-          response['status'] = response.statusCode
-          callback(null, response, response.body)
-        },
-        reason => callback(reason.error, null, null)
-      )
-    }
-    if (isSurge) $httpClient.post(options, callback)
-  }
-  const done = (value = {}) => {
-    if (isQuanX) isRequest ? $done(value) : ''
-    if (isSurge) isRequest ? $done(value) : $done()
-  }
-  return { isRequest, isQuanX, isSurge, notify, write, read, get, post, done }
 }
