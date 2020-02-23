@@ -1,4 +1,4 @@
-*/
+/*
 
 const accounts = [
     ["N3RO", "https://n3ro.fun/auth/login", "386727754@qq.com", "always007"]
