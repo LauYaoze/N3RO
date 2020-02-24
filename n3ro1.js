@@ -1,7 +1,7 @@
 /*
 Dler Cloud 签到脚本
 
-说明：登录 https://n3ro.fun/ 获取 cookie，cookie有效期为 31 天，失效后需重新获取
+说明：登录 https://dleris.best/ 获取 cookie，cookie有效期为 31 天，失效后需重新获取
 
 QX 1.0.5+ :
 [rewrite_local]
@@ -32,6 +32,7 @@ const checkinResult = {
   msg: undefined,
   used: undefined,
   rest: undefined,
+  total: undefined,
 }
 
 if ($util.isRequest) {
@@ -100,11 +101,22 @@ function checkin(cookie) {
     }
     $util.post(options, (error, response, data) => {
       obj = JSON.parse(data)
+      checkinResult.total = updateTotal(obj.msg)
       checkinResult.msg = obj.msg
       resolve('done')
     })
   })
 }
+
+function updateTotal(checkinMsg) {
+  let total = $util.read(totalKey)
+  if (total != (undefined || null)) {
+    total = parseFloat(total)
+  } else {
+    total = 0.0
+  }
+
+
 
 /**
  * 该兼容方法来自 @nobyda https://github.com/NobyDa/Script
