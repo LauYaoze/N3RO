@@ -43,7 +43,7 @@ if ($util.isRequest) {
     await checkin(cookie)
     await getDataTraffic(cookie)
   })().then(() => {
-    let msg = `已用流量：${checkinResult.used}\n剩余流量：${checkinResult.rest}\n
+    let msg = `已用流量：${checkinResult.used}\n剩余流量：${checkinResult.rest}\n累计收益：${checkinResult.total}MB`
     $util.notify('N3RO', checkinResult.msg, msg)
   })
 }
@@ -116,7 +116,20 @@ function updateTotal(checkinMsg) {
     total = 0.0
   }
 
+  if (checkinMsg) {
+    let matcher = checkinMsg.match(/(增加|减少)[^.\d]*(([1-9]\d*|0)(\.\d+)?)[^.\d]*/)
+    if (matcher && matcher.length >= 3) {
+      if (matcher[1] === '增加') {
+        total += parseFloat(matcher[2])
+      } else if (matcher[1] === '减少') {
+        total -= parseFloat(matcher[2])
+      }
+    }
+    $util.write(`${total}`, totalKey)
+  }
 
+  return total
+}
 
 /**
  * 该兼容方法来自 @nobyda https://github.com/NobyDa/Script
