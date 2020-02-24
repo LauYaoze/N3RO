@@ -1,142 +1,171 @@
-/*
-    本作品用于QuantumultX和Surge之间js执行方法的转换
-    您只需书写其中任一软件的js,然后在您的js最【前面】追加上此段js即可
-    无需担心影响执行问题,具体原理是将QX和Surge的方法转换为互相可调用的方法
-    尚未测试是否支持import的方式进行使用,因此暂未export
-    如有问题或您有更好的改进方案,请前往 https://github.com/sazs34/TaskConfig/issues 提交内容,或直接进行pull request
-    您也可直接在tg中联系@wechatu
-*/
-// #region 固定头部
-let isQuantumultX = $task != undefined; //判断当前运行环境是否是qx
-let isSurge = $httpClient != undefined; //判断当前运行环境是否是surge
-// http请求
-var $task = isQuantumultX ? $task : {};
-var $httpClient = isSurge ? $httpClient : {};
-// cookie读写
-var $prefs = isQuantumultX ? $prefs : {};
-var $persistentStore = isSurge ? $persistentStore : {};
-// 消息通知
-var $notify = isQuantumultX ? $notify : {};
-var $notification = isSurge ? $notification : {};
-// #endregion 固定头部
+// 统一 Surge、QuanX、Node 相关脚本 API, 方便开发、调试
+// 包括 Node（request 模块）、Surge（$httpClient，$notification，$persistentStore 模块）、QuanX（$task，$notify，$prefs 模块）
 
-// #region 网络请求专用转换
-if (isQuantumultX) {
-    var errorInfo = {
-        error: ''
-    };
-    $httpClient = {
-        get: (url, cb) => {
-            var urlObj;
-            if (typeof (url) == 'string') {
-                urlObj = {
-                    url: url
-                }
-            } else {
-                urlObj = url;
+const $tool = new Tool()
+// notify
+$tool.notify("title", "subtitle", "message")
+// cache
+$tool.write("value", "key")
+$tool.read("key")
+// get
+$tool.get("http://www.baidu.com", function (error, response, body) {
+    // response.status response.statusCode response.headers
+    if (!error) {
+        if (response.statusCode == 200) {
+            console.log(body)
+        }
+    } else {
+        console.log(error)
+    }
+})
+// post
+const request = {
+    url: "https://www.baidu.com",
+    body: ""
+    //...
+}
+$tool.post(request, function (error, response, body) {
+    // response.status response.statusCode response.headers
+    if (!error) {
+        if (response.statusCode == 200) {
+            console.log(body)
+        }
+    } else {
+        console.log(error)
+    }
+})
+
+function Tool() {
+    _node = (() => {
+        if (typeof require == "function") {
+            const request = require('request')
+            return ({ request })
+        } else {
+            return (null)
+        }
+    })()
+    _isSurge = typeof $httpClient != "undefined"
+    _isQuanX = typeof $task != "undefined"
+    this.isSurge = _isSurge
+    this.isQuanX = _isQuanX
+    this.isResponse = typeof $response != "undefined"
+    this.notify = (title, subtitle, message) => {
+        if (_isQuanX) $notify(title, subtitle, message)
+        if (_isSurge) $notification.post(title, subtitle, message)
+        if (_node) console.log(JSON.stringify({ title, subtitle, message }));
+    }
+    this.write = (value, key) => {
+        if (_isQuanX) return $prefs.setValueForKey(value, key)
+        if (_isSurge) return $persistentStore.write(value, key)
+    }
+    this.read = (key) => {
+        if (_isQuanX) return $prefs.valueForKey(key)
+        if (_isSurge) return $persistentStore.read(key)
+    }
+    this.get = (options, callback) => {
+        if (_isQuanX) {
+            if (typeof options == "string") options = { url: options }
+            options["method"] = "GET"
+            $task.fetch(options).then(response => { callback(null, _status(response), response.body) }, reason => callback(reason.error, null, null))
+        }
+        if (_isSurge) $httpClient.get(options, (error, response, body) => { callback(error, _status(response), body) })
+        if (_node) _node.request(options, (error, response, body) => { callback(error, _status(response), body) })
+    }
+    this.post = (options, callback) => {
+        if (_isQuanX) {
+            if (typeof options == "string") options = { url: options }
+            options["method"] = "POST"
+            $task.fetch(options).then(response => { callback(null, _status(response), response.body) }, reason => callback(reason.error, null, null))
+        }
+        if (_isSurge) $httpClient.post(options, (error, response, body) => { callback(error, _status(response), body) })
+        if (_node) _node.request.post(options, (error, response, body) => { callback(error, _status(response), body) })
+    }
+    _status = (response) => {
+        if (response) {
+            if (response.status) {
+                response["statusCode"] = response.status
+            } else if (response.statusCode) {
+                response["status"] = response.statusCode
             }
-            $task.fetch(urlObj).then(response => {
-                cb(undefined, response, response.body)
-            }, reason => {
-                errorInfo.error = reason.error;
-                cb(errorInfo, response, '')
-            })
-        },
-        post: (url, cb) => {
-            var urlObj;
-            if (typeof (url) == 'string') {
-                urlObj = {
-                    url: url
-                }
-            } else {
-                urlObj = url;
+        }
+        return response
+    }
+}
+
+function tool() {
+    const isSurge = typeof $httpClient != "undefined"
+    const isQuanX = typeof $task != "undefined"
+    const isResponse = typeof $response != "undefined"
+    const node = (() => {
+        if (typeof require == "function") {
+            const request = require('request')
+            return ({ request })
+        } else {
+            return (null)
+        }
+    })()
+    const notify = (title, subtitle, message) => {
+        if (isQuanX) $notify(title, subtitle, message)
+        if (isSurge) $notification.post(title, subtitle, message)
+        if (node) console.log(JSON.stringify({ title, subtitle, message }));
+    }
+    const write = (value, key) => {
+        if (isQuanX) return $prefs.setValueForKey(value, key)
+        if (isSurge) return $persistentStore.write(value, key)
+    }
+    const read = (key) => {
+        if (isQuanX) return $prefs.valueForKey(key)
+        if (isSurge) return $persistentStore.read(key)
+    }
+    const adapterStatus = (response) => {
+        if (response) {
+            if (response.status) {
+                response["statusCode"] = response.status
+            } else if (response.statusCode) {
+                response["status"] = response.statusCode
             }
-            url.method = 'POST';
-            $task.fetch(urlObj).then(response => {
-                cb(undefined, response, response.body)
-            }, reason => {
-                errorInfo.error = reason.error;
-                cb(errorInfo, response, '')
+        }
+        return response
+    }
+    const get = (options, callback) => {
+        if (isQuanX) {
+            if (typeof options == "string") options = { url: options }
+            options["method"] = "GET"
+            $task.fetch(options).then(response => {
+                callback(null, adapterStatus(response), response.body)
+            }, reason => callback(reason.error, null, null))
+        }
+        if (isSurge) $httpClient.get(options, (error, response, body) => {
+            callback(error, adapterStatus(response), body)
+        })
+        if (node) {
+            node.request(options, (error, response, body) => {
+                callback(error, adapterStatus(response), body)
             })
         }
     }
-}
-if (isSurge) {
-    $task = {
-        fetch: url => {
-            //为了兼容qx中fetch的写法,所以永不reject
-            return new Promise((resolve, reject) => {
-                if (url.method == 'POST') {
-                    $httpClient.post(url, (error, response, data) => {
-                        if (response) {
-                            response.body = data;
-                            resolve(response, {
-                                error: error
-                            });
-                        } else {
-                            resolve(null, {
-                                error: error
-                            })
-                        }
-                    })
-                } else {
-                    $httpClient.get(url, (error, response, data) => {
-                        if (response) {
-                            response.body = data;
-                            resolve(response, {
-                                error: error
-                            });
-                        } else {
-                            resolve(null, {
-                                error: error
-                            })
-                        }
-                    })
-                }
+    const post = (options, callback) => {
+        if (isQuanX) {
+            if (typeof options == "string") options = { url: options }
+            options["method"] = "POST"
+            $task.fetch(options).then(response => {
+                callback(null, adapterStatus(response), response.body)
+            }, reason => callback(reason.error, null, null))
+        }
+        if (isSurge) {
+            $httpClient.post(options, (error, response, body) => {
+                callback(error, adapterStatus(response), body)
             })
+        }
+        if (node) {
+            node.request.post(options, (error, response, body) => {
+                callback(error, adapterStatus(response), body)
+            })
+        }
+    }
+    return { isQuanX, isSurge, isResponse, notify, write, read, get, post }
+}
 
-        }
-    }
-}
-// #endregion 网络请求专用转换
-
-// #region cookie操作
-if (isQuantumultX) {
-    $persistentStore = {
-        read: key => {
-            return $prefs.valueForKey(key);
-        },
-        write: (val, key) => {
-            return $prefs.setValueForKey(val, key);
-        }
-    }
-}
-if (isSurge) {
-    $prefs = {
-        valueForKey: key => {
-            return $persistentStore.read(key);
-        },
-        setValueForKey: (val, key) => {
-            return $persistentStore.write(val, key);
-        }
-    }
-}
-// #endregion
-
-// #region 消息通知
-if (isQuantumultX) {
-    $notification = {
-        post: (title, subTitle, detail) => {
-            $notify(title, subTitle, detail);
-        }
-    }
-}
-if (isSurge) {
-    $notify = function (title, subTitle, detail) {
-        $notification.post(title, subTitle, detail);
-    }
-}
-// #endregion
 
 /*
 Check in for Surge by Neurogram
