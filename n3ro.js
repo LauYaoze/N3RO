@@ -8,7 +8,7 @@ $tool.notify("title", "subtitle", "message")
 $tool.write("value", "key")
 $tool.read("key")
 // get
-$tool.get("http://www.baidu.com", function (error, response, body) {
+$tool.get("https://n3ro.fun", function (error, response, body) {
     // response.status response.statusCode response.headers
     if (!error) {
         if (response.statusCode == 200) {
@@ -20,7 +20,7 @@ $tool.get("http://www.baidu.com", function (error, response, body) {
 })
 // post
 const request = {
-    url: "https://www.baidu.com",
+    url: "https://n3ro.fun",
     body: ""
     //...
 }
