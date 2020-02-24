@@ -1,186 +1,234 @@
 /*
-Dler Cloud 签到脚本
+    本作品用于QuantumultX和Surge之间js执行方法的转换
+    您只需书写其中任一软件的js,然后在您的js最【前面】追加上此段js即可
+    无需担心影响执行问题,具体原理是将QX和Surge的方法转换为互相可调用的方法
+    尚未测试是否支持import的方式进行使用,因此暂未export
+    如有问题或您有更好的改进方案,请前往 https://github.com/sazs34/TaskConfig/issues 提交内容,或直接进行pull request
+    您也可直接在tg中联系@wechatu
+*/
+// #region 固定头部
+let isQuantumultX = $task != undefined; //判断当前运行环境是否是qx
+let isSurge = $httpClient != undefined; //判断当前运行环境是否是surge
+// 判断request还是respons
+// down方法重写
+var $done = (obj={}) => {
+    var isRequest = typeof $request != "undefined";
+    if (isQuantumultX) {
+        return isRequest ? $done({}) : ""
+    }
+    if (isSurge) {
+        return isRequest ? $done({}) : $done()
+    }
+}
+// http请求
+var $task = isQuantumultX ? $task : {};
+var $httpClient = isSurge ? $httpClient : {};
+// cookie读写
+var $prefs = isQuantumultX ? $prefs : {};
+var $persistentStore = isSurge ? $persistentStore : {};
+// 消息通知
+var $notify = isQuantumultX ? $notify : {};
+var $notification = isSurge ? $notification : {};
+// #endregion 固定头部
 
-说明：登录 https://n3ro.fun/ 获取 cookie，cookie有效期为 31 天，失效后需重新获取
+// #region 网络请求专用转换
+if (isQuantumultX) {
+    var errorInfo = {
+        error: ''
+    };
+    $httpClient = {
+        get: (url, cb) => {
+            var urlObj;
+            if (typeof (url) == 'string') {
+                urlObj = {
+                    url: url
+                }
+            } else {
+                urlObj = url;
+                if (urlObj.body && typeof (urlObj.body) != 'string') {
+                    urlObj.body = JSON.stringify(urlObj.body);
+                    if (urlObj.headers) {
+                        urlObj.headers['Content-type'] = 'application/json; charset=utf-8';
+                    } else {
+                        urlObj.headers = {'Content-type' : 'application/json; charset=utf-8'};
+                    }
+                }
+            }
+            $task.fetch(urlObj).then(response => {
+                cb(undefined, response, response.body)
+            }, reason => {
+                errorInfo.error = reason.error;
+                cb(errorInfo, response, '')
+            })
+        },
+        post: (url, cb) => {
+            var urlObj;
+            if (typeof (url) == 'string') {
+                urlObj = {
+                    url: url
+                }
+            } else {
+                urlObj = url;
+                if (urlObj.body && typeof (urlObj.body) != 'string') {
+                    urlObj.body = JSON.stringify(urlObj.body);
+                    if (urlObj.headers) {
+                        urlObj.headers['Content-type'] = 'application/json; charset=utf-8';
+                    } else {
+                        urlObj.headers = {'Content-type' : 'application/json; charset=utf-8'};
+                    }
+                }
+            }
+            urlObj.method = 'POST';
+            $task.fetch(urlObj).then(response => {
+                cb(undefined, response, response.body)
+            }, reason => {
+                errorInfo.error = reason.error;
+                cb(errorInfo, response, '')
+            })
+        }
+    }
+}
+if (isSurge) {
+    $task = {
+        fetch: url => {
+            //为了兼容qx中fetch的写法,所以永不reject
+            return new Promise((resolve, reject) => {
+                if (url.method == 'POST') {
+                    $httpClient.post(url, (error, response, data) => {
+                        if (response) {
+                            response.body = data;
+                            resolve(response, {
+                                error: error
+                            });
+                        } else {
+                            resolve(null, {
+                                error: error
+                            })
+                        }
+                    })
+                } else {
+                    $httpClient.get(url, (error, response, data) => {
+                        if (response) {
+                            response.body = data;
+                            resolve(response, {
+                                error: error
+                            });
+                        } else {
+                            resolve(null, {
+                                error: error
+                            })
+                        }
+                    })
+                }
+            })
 
-QX 1.0.5+ :
-[rewrite_local]
-^https:\/\/n3ro\.fun\/user url script-request-header dlercloud.js
+        }
+    }
+}
+// #endregion 网络请求专用转换
 
-[task_local]
-0/60 * * * * n3ro1.js
+// #region cookie操作
+if (isQuantumultX) {
+    $persistentStore = {
+        read: key => {
+            return $prefs.valueForKey(key);
+        },
+        write: (val, key) => {
+            return $prefs.setValueForKey(val, key);
+        }
+    }
+}
+if (isSurge) {
+    $prefs = {
+        valueForKey: key => {
+            return $persistentStore.read(key);
+        },
+        setValueForKey: (val, key) => {
+            return $persistentStore.write(val, key);
+        }
+    }
+}
+// #endregion
 
-[mitm]
-hostname = n3ro.fun
+// #region 消息通知
+if (isQuantumultX) {
+    $notification = {
+        post: (title, subTitle, detail) => {
+            $notify(title, subTitle, detail);
+        }
+    }
+}
+if (isSurge) {
+    $notify = function (title, subTitle, detail) {
+        $notification.post(title, subTitle, detail);
+    }
+}
+// #endregion
 
+/*
+Check in for Surge by Neurogram
 
-Surge 4.0 :
-[Script]
-http-request ^https:\/\/n3ro\.fun\/user script-path=n3ro1.js
-cron "0/60 * * * *" script-path=n3ro1.js
+ - 站点签到脚本
+ - 流量详情显示
+ - 多站签到支持
+ - 多类站点支持
 
-[MITM]
-hostname = n3ro.fun
+使用说明：https://www.notion.so/neurogram/Check-in-0797ec9f9f3f445aae241d7762cf9d8b
+
+关于作者
+Telegram: Neurogram
+GitHub: Neurogram-R
 */
 
-const $util = init()
-const cookieName = 'N3RO'
-const totalKey = 'N3RO'
-const url = 'https://n3ro.fun'
+const accounts = [
+    ["n3ro", "https://v2.n3ro.fun/auth/login", "386727754@qq.com", "always007"]
+]
 
-const checkinResult = {
-  msg: undefined,
-  used: undefined,
-  rest: undefined,
-  total: undefined,
+async function launch() {
+    for (var i in accounts) {
+        let title = accounts[i][0]
+        let url = accounts[i][1]
+        let email = accounts[i][2]
+        let password = accounts[i][3]
+        await login(url, email, password, title)
+    }
+    $done();
 }
 
-if ($util.isRequest) {
-  getCookie()
-} else {
-  ;(async () => {
-    let cookie = $util.read(cookieName)
-    await checkin(cookie)
-    await getDataTraffic(cookie)
-  })().then(() => {
-    let msg = `已用流量：${checkinResult.used}\n剩余流量：${checkinResult.rest}\n累计收益：${checkinResult.total}MB`
-    $util.notify('N3RO', checkinResult.msg, msg)
-  })
-}
-$util.done()
+launch()
 
-function getCookie() {
-  if ($request.headers) {
-    let cookieValue = $request.headers['Cookie']
-    if ($util.read(cookieName) != (undefined || null)) {
-      if ($util.read(cookieName) != cookieValue) {
-        if (!$util.write(cookieValue, cookieName)) {
-          $util.notify(`更新 ${cookieName} Cookie 失败‼️`, '', '')
-        } else {
-          $util.notify(`更新 ${cookieName} Cookie 成功 🎉`, '', '')
+function login(url, email, password, title) {
+    let loginPath = url.indexOf("auth/login") != -1 ? "auth/login" : "user/_login.php"
+    let table = {
+        url: url.replace(/(auth|user)\/login(.php)*/g, "") + loginPath,
+        header: {
+
+        },
+        body: {
+            "email": email,
+            "passwd": password,
+            "rumber-me": "week"
         }
-      }
-    } else {
-      if (!$util.write(cookieValue, cookieName)) {
-        $util.notify(`首次写入 ${cookieName} Cookie 失败‼️`, '', '')
-      } else {
-        $util.notify(`首次写入 ${cookieName} Cookie 成功 🎉`, '', '')
-      }
     }
-  } else {
-    $util.notify(`写入 ${cookieName} Cookie 失败‼️`, '', '无法读取请求头')
-  }
+    $httpClient.post(table, async function (error, response, data) {
+        if (error) {
+            console.log(error);
+            $notification.post(title + '登录失败', error, "");
+        } else {
+            await checkin(url, title)
+        }
+    }
+    );
 }
 
-function getDataTraffic(cookie) {
-  return new Promise((resolve, reject) => {
-    let options = {
-      url: `${url}/user`,
-      headers: {
-        Cookie: cookie,
-      },
-    }
-    $util.get(options, (error, response, data) => {
-      let matcher = data.replace(/\n/g, '').match(/>可用：(.*?)<.*>已用：(.*?)</)
-      if (matcher && matcher.length == 3) {
-        checkinResult.rest = matcher[1]
-        checkinResult.used = matcher[2]
-      }
-      resolve('done')
-    })
-  })
-}
-
-function checkin(cookie) {
-  return new Promise(resolve => {
-    let options = {
-      url: `${url}/user/checkin`,
-      headers: {
-        Cookie: cookie,
-      },
-    }
-    $util.post(options, (error, response, data) => {
-      obj = JSON.parse(data)
-      checkinResult.total = updateTotal(obj.msg)
-      checkinResult.msg = obj.msg
-      resolve('done')
-    })
-  })
-}
-
-function updateTotal(checkinMsg) {
-  let total = $util.read(totalKey)
-  if (total != (undefined || null)) {
-    total = parseFloat(total)
-  } else {
-    total = 0.0
-  }
-
-  if (checkinMsg) {
-    let matcher = checkinMsg.match(/(增加|减少)[^.\d]*(([1-9]\d*|0)(\.\d+)?)[^.\d]*/)
-    if (matcher && matcher.length >= 3) {
-      if (matcher[1] === '增加') {
-        total += parseFloat(matcher[2])
-      } else if (matcher[1] === '减少') {
-        total -= parseFloat(matcher[2])
-      }
-    }
-    $util.write(`${total}`, totalKey)
-  }
-
-  return total
-}
-
-/**
- * 该兼容方法来自 @nobyda https://github.com/NobyDa/Script
- */
-function init() {
-  const isRequest = typeof $request != 'undefined'
-  const isSurge = typeof $httpClient != 'undefined'
-  const isQuanX = typeof $task != 'undefined'
-  const notify = (title, subtitle, message) => {
-    if (isQuanX) $notify(title, subtitle, message)
-    if (isSurge) $notification.post(title, subtitle, message)
-  }
-  const write = (value, key) => {
-    if (isQuanX) return $prefs.setValueForKey(value, key)
-    if (isSurge) return $persistentStore.write(value, key)
-  }
-  const read = key => {
-    if (isQuanX) return $prefs.valueForKey(key)
-    if (isSurge) return $persistentStore.read(key)
-  }
-  const get = (options, callback) => {
-    if (isQuanX) {
-      if (typeof options == 'string') options = { url: options }
-      options['method'] = 'GET'
-      return $task.fetch(options).then(
-        response => {
-          response['status'] = response.statusCode
-          callback(null, response, response.body)
-        },
-        reason => callback(reason.error, null, null)
-      )
-    }
-    if (isSurge) return $httpClient.get(options, callback)
-  }
-  const post = (options, callback) => {
-    if (isQuanX) {
-      if (typeof options == 'string') options = { url: options }
-      options['method'] = 'POST'
-      $task.fetch(options).then(
-        response => {
-          response['status'] = response.statusCode
-          callback(null, response, response.body)
-        },
-        reason => callback(reason.error, null, null)
-      )
-    }
-    if (isSurge) $httpClient.post(options, callback)
-  }
-  const done = (value = {}) => {
-    if (isQuanX) isRequest ? $done(value) : ''
-    if (isSurge) isRequest ? $done(value) : $done()
-  }
-  return { isRequest, isQuanX, isSurge, notify, write, read, get, post, done }
+function checkin(url, title) {
+    let checkinPath = url.indexOf("auth/login") != -1 ? "user/checkin" : "user/_checkin.php"
+    $httpClient.post(url.replace(/(auth|user)\/login(.php)*/g, "") + checkinPath, async function (error, response, data) {
+        if (error) {
+            console.log(error);
+            $notification.post(title + '签到失败', error, "");
+        } else {
+            $notification.post(title, JSON.parse(data).msg, "么么哒", "", "");
+        }
+    });
 }
