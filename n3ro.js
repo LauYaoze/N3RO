@@ -228,7 +228,25 @@ function checkin(url, title) {
             console.log(error);
             $notification.post(title + '签到失败', error, "");
         } else {
-            $notification.post(title, JSON.parse(data).msg, "么么哒", "", "");
+            await dataResults(url, JSON.parse(data).msg, title)
+        }
+    });
+}
+
+function dataResults(url, checkinMsg, title) {
+    let userPath = url.indexOf("auth/login") != -1 ? "user" : "user/index.php"
+    $httpClient.get(url.replace(/(auth|user)\/login(.php)*/g, "") + userPath, function (error, response, data) {
+        var usedData = data.match(/[0-9\.]*? CNY/) 
+        if (usedData) {
+            var restData = data.match(/"card-tag tag-green" id="remain">(.*)<\/code>/)
+            var usrvip = data.match(/<dd>VIP ([0-9])<\/dd>/)
+            var device = data.match(/([0-9\.]*?) \/ 不限制/)
+            var nextdata = data.match(/等级到期时间 (.*)<\/div>/)
+            var todayuse = data.match(/card-tag tag-red">(.*)<\/code>/)
+            var totaluse = data.match(/"card-tag tag-orange">(.*)<\/code>/)
+            $notification.post("尊敬的"+title+ "-VIP"+usrvip[1]+"会员", checkinMsg, "账户余额：" + usedData +"\n今日已用："+ todayuse[1]+"\n总共使用："+ totaluse[1]+"\n剩余流量：" + restData[1] +"\n在线设备："+device[1]+"\n等级到期："+nextdata[1]);
+        } else {
+            $notification.post(title + '获取流量信息失败', "", "");
         }
     });
 }
