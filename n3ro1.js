@@ -1,26 +1,26 @@
 /*
 Dler Cloud 签到脚本
 
-说明：登录 https://dleris.best/ 获取 cookie，cookie有效期为 31 天，失效后需重新获取
+说明：登录 https://n3ro.fun/ 获取 cookie，cookie有效期为 31 天，失效后需重新获取
 
 QX 1.0.5+ :
 [rewrite_local]
-^https:\/\/dleris\.best\/user url script-request-header dlercloud.js
+^https:\/\/n3ro\.fun\/user url script-request-header dlercloud.js
 
 [task_local]
-0/60 * * * * dlercloud.js
+0/60 * * * * n3ro1.js
 
 [mitm]
-hostname = dleris.best
+hostname = n3ro.fun
 
 
 Surge 4.0 :
 [Script]
-http-request ^https:\/\/dleris\.best\/user script-path=dlercloud.js
-cron "0/60 * * * *" script-path=dlercloud.js
+http-request ^https:\/\/n3ro\.fun\/user script-path=n3ro1.js
+cron "0/60 * * * *" script-path=n3ro1.js
 
 [MITM]
-hostname = dleris.best
+hostname = n3ro.fun
 */
 
 const $util = init()
