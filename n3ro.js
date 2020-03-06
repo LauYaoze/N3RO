@@ -9,13 +9,12 @@
 let Cookie = $prefs.valueForKey("N3ROCookie");
 
 let Req = {
-  url: "http://n3ro.fun/user/checkin",
+  url: "http://n3ro.fun/user",
   method: "POST",
   headers: {
     Cookie: Cookie,
     Origin: "http://n3ro.fun",
     Referer: "http://n3ro.fun/user",
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36"
   }
 };
 
