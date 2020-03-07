@@ -16,9 +16,9 @@ if (headerCookie) {
     if ($prefs.valueForKey("N3ROCookie") != headerCookie) {
       var cookie = $prefs.setValueForKey(headerCookie, "N3ROCookie");
       if (!cookie) {
-        $notify("更新球加速✈️Cookie失败！", "", "");
+        $notify("更新N3RO✈️Cookie失败！", "", "");
       } else {
-        $notify("更新球加速✈️Cookie成功！", "", "");
+        $notify("更新N3RO✈️Cookie成功！", "", "");
       }
     }
   } else {
