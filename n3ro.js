@@ -6,7 +6,7 @@
 6 9 * * * qiujiasu.js
 */
 
-let Cookie = $prefs.valueForKey("N3ROCookie");
+let Cookie = $prefs.valueForKey("n3rocookie");
 
 let Req = {
   url: "http://n3ro.fun/user",
