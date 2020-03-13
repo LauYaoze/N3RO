@@ -250,15 +250,7 @@ function checkin(url, title, cookies) {
     }
 }
 
-function dataResults(url, checkinMsg, title, cookies) {
-    var userPath = url.indexOf("auth/login") != -1 ? "user" : "user/index.php";
-    var data_url = url.replace(/(auth|user)\/login(.php)*/g, "") + userPath;
-    var options1 = {
-        'method': 'get',
-        'headers': {
-            'Cookie': cookies
-        }
-    };
+function 
     var dataResults = UrlFetchApp.fetch(data_url, options1);
     data = dataResults.getContentText();
     var restData = data.match(/(id="remain">)[^B]+/)
