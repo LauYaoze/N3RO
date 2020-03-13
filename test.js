@@ -184,53 +184,61 @@ const accounts = [
     ["N3RO", "https://n3ro.fun/auth/login", "386727754@qq.com", "always007"]
 ]
 
-async function launch() {
+function launch() {
     for (var i in accounts) {
-        let title = accounts[i][0]
-        let url = accounts[i][1]
-        let email = accounts[i][2]
-        let password = accounts[i][3]
-        await login(url, email, password, title)
+        var title = accounts[i][0]
+        var url = accounts[i][1]
+        var email = accounts[i][2]
+        var password = accounts[i][3]
+        login(url, email, password, title)
     }
-    $done();
 }
 
-launch()
-
 function login(url, email, password, title) {
-    let loginPath = url.indexOf("auth/login") != -1 ? "auth/login" : "user/_login.php"
-    let table = {
-        url: url.replace(/(auth|user)\/login(.php)*/g, "") + loginPath,
-        header: {
-
-        },
-        body: {
+    var loginPath = url.indexOf("auth/login") != -1 ? "auth/login" : "user/_login.php";
+    var login = url.replace(/(auth|user)\/login(.php)*/g, "") + loginPath;
+    var table = {
+        'method': 'post',
+        'payload': {
             "email": email,
             "passwd": password,
             "rumber-me": "week"
         }
     }
-    $httpClient.post(table, async function (error, response, data) {
-        if (error) {
-            console.log(error);
-            $notification.post(title + '登录失败', error, "");
+    var response = UrlFetchApp.fetch(login, table)
+    var cookies = response.getAllHeaders()['Set-Cookie']
+    for (i = 0; i < cookies.length; i++) {
+
+        if (cookies[i].indexOf("email") != -1) email = cookies[i];
+        if (cookies[i].indexOf("expire_in") != -1) expire_in = cookies[5];
+        if (cookies[i].indexOf("ip") != -1) ip = cookies[i];
+        if (cookies[i].indexOf("key") != -1) key = cookies[i];
+        if (cookies[i].indexOf("uid") != -1) uid = cookies[i];
+        if (cookies[i].indexOf("__cfduid") != -1) __cfduid = cookies[i];
+        if (cookies[i].indexOf("ip") != -1) ip = cookies[i];;
+    }
+    email = email.split(";")[0];
+    expire_in = expire_in.split(";")[0];
+    ip = ip.split(";")[0];
+    key = key.split(";")[0];
+    uid = uid.split(";")[0];
+    __cfduid = __cfduid.split(";")[0];
+    cookies = email + "; " + expire_in + "; " + ip + "; " + key + "; " + uid + "; " + __cfduid;
+    if (!response) {
+        var error_text = title + ' 登录失败';
+        originalData(error_text);
+    } else {
+        var data = response.getContentText();
+        if (JSON.parse(data).msg == "邮箱或者密码错误") {
+            originalData(title + '邮箱或者密码错误');
+        } else if (JSON.parse(data).msg == "\u90ae\u7bb1\u6216\u8005\u5bc6\u7801\u9519\u8bef") {
+            originalData(title + '邮箱或者密码错误');
         } else {
-            await checkin(url, title)
+            var request = UrlFetchApp.getRequest(login, table)
+            checkin(url, title, cookies)
         }
     }
-    );
-}
 
-function checkin(url, title) {
-    let checkinPath = url.indexOf("auth/login") != -1 ? "user/checkin" : "user/_checkin.php"
-    $httpClient.post(url.replace(/(auth|user)\/login(.php)*/g, "") + checkinPath, async function (error, response, data) {
-        if (error) {
-            console.log(error);
-            $notification.post(title + '签到失败', error, "");
-        } else {
-            await dataResults(url, JSON.parse(data).msg, title)
-        }
-    });
 }
 
 function checkin(url, title, cookies) {
@@ -250,7 +258,15 @@ function checkin(url, title, cookies) {
     }
 }
 
-function 
+function dataResults(url, checkinMsg, title, cookies) {
+    var userPath = url.indexOf("auth/login") != -1 ? "user" : "user/index.php";
+    var data_url = url.replace(/(auth|user)\/login(.php)*/g, "") + userPath;
+    var options1 = {
+        'method': 'get',
+        'headers': {
+            'Cookie': cookies
+        }
+    };
     var dataResults = UrlFetchApp.fetch(data_url, options1);
     data = dataResults.getContentText();
     var restData = data.match(/(id="remain">)[^B]+/)
