@@ -1,2 +1,4 @@
 DOMAIN-SUFFIX,wr.pvp.net
-DOMAIN-SUFFIX,riotgames.com
+DOMAIN-SUFFIX,lolstatic-a.akamaihd.net
+DOMAIN-SUFFIX,fast.fonts.net
+DOMAIN-SUFFIX,auth.riotgames.com
