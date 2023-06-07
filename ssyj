@@ -1,7 +1,7 @@
 //转自https://raw.githubusercontent.com/RS0485/network-rules/main/scripts/gas-price.js
 /*
 [task_local]
-0 8 ? * * https://raw.githubusercontent.com/Toperlock/Quantumult/main/task/oil_price.js, tag=今日油价, enabled=true
+0 8 ? * * https://, tag=今日油价, enabled=true
 */
 
 var region = 'tianjin';
